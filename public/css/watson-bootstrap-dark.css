@@ -42,6 +42,9 @@ video {
   display: inline-block;
   vertical-align: baseline;
 }
+video:overlay{
+	background: url(images/money.jpg) no-repeat;
+}
 audio:not([controls]) {
   display: none;
   height: 0;

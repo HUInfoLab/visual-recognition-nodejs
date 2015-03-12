@@ -15,6 +15,7 @@
  */
 
 'use strict';
+var snapshots = [];
 /*global $:false */
 
 /**
@@ -22,6 +23,17 @@
  */
 (function() {
 
+  var library = {"featureVectors":[
+                {"imageNumber":"img1", "featureName1":"Black","featureProb1":"70", "featureName2":"Color", "featureProb2":"68", "featureName3":"Shoes","featureProb3":"60", "featureName4":"Pole_Vault","featureProb4":"54"}, 
+                {"imageNumber":"img2", "featureName1":"BW","featureProb1":"74", "featureName2":"Skyline_(night)", "featureProb2":"65", "featureName3":"Black","featureProb3":"63", "featureName4":"Pigeon","featureProb4":"56"},
+                {"imageNumber":"img3", "featureName1":"Black","featureProb1":"73", "featureName2":"City_Scene", "featureProb2":"61", "featureName3":"","featureProb3":"", "featureName4":"","featureProb4":""},
+                {"imageNumber":"img4", "featureName1":"Color","featureProb1":"73", "featureName2":"Photo", "featureProb2":"67", "featureName3":"Human","featureProb3":"65", "featureName4":"Indoors","featureProb4":"61"},
+                {"imageNumber":"img5", "featureName1":"Color","featureProb1":"72", "featureName2":"Human", "featureProb2":"71", "featureName3":"Photo","featureProb3":"68", "featureName4":"Face","featureProb4":"68"},
+                {"imageNumber":"img6", "featureName1":"Fabric","featureProb1":"73", "featureName2":"Face", "featureProb2":"72", "featureName3":"Human","featureProb3":"70", "featureName4":"Person_View","featureProb4":"54"},
+                {"imageNumber":"img7", "featureName1":"Color","featureProb1":"75", "featureName2":"Shoes", "featureProb2":"67", "featureName3":"Indoors","featureProb3":"63", "featureName4":"Photo","featureProb4":"61"},
+            ]};
+  
+  
   function processImage() {
     $('.selected-classifier').text('Classifier: ' + $("select[name='classifier'] option:selected").text());
     $('.loading').show();
@@ -99,8 +111,54 @@
       htmlString += percentagify(labels[i].label_score) + '%';
       htmlString += '</td>';
       htmlString += '</tr>';
+      
     }
-
+    for (var j=0; j <labels.length; j++) {
+     
+      var testLabel = labels[j].label_name;
+      var testProb = labels[j].label_score;
+      console.log(testLabel);     
+      
+        
+      
+      var featureCount = featureCheck(testLabel,'Color',testProb, .74);
+      featureCount = featureCount + featureCheck(testLabel,'Scene',testProb, .68, 5);
+      console.log('featureCount is: ' +featureCount);
+     
+      
+      
+      
+      
+//      if(testLabel == 'Color'){
+//        var benchMark = .74;
+//        var difference = Math.abs(testProp - benchMark);  
+//        console.log("We have a match for Color");
+//        console.log("The difference is: " + difference);
+//        if( difference < 5)
+//         {          
+//          k++;
+//          console.log('k has been incremented');
+//         }
+//      }
+      
+    }
+    if(featureCount > 5)
+    {
+      htmlString += '<tr>';
+      htmlString += '<td>';
+      htmlString += 'The Image was not poltical in nature...supposedly';
+      htmlString += '</td>';
+      htmlString += '</tr>';
+    }
+    
+    if(featureCount < 5)
+    {
+      htmlString += '<tr>';
+      htmlString += '<td>';
+      htmlString += 'The Image was polticial in nature...supposedly';
+      htmlString += '</td>';
+      htmlString += '</tr>';
+    }
     htmlString += '</tbody>';
 
     $('.data').append(htmlString);
@@ -219,18 +277,223 @@
     img.onerror = function() { callback(false); };
     img.src = url;
   }
-
-
-  // custom method for url validation with or without http://
-  function isValidURL(url) {
-    if(url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0){
-      url = 'http://' + url;
-    }
-    if(url.substr(url.length-1, 1) !== '/'){
-      url = url + '/';
-    }
-    return /^(https|http|ftp):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/i.test(url);
+  
+  function featureCheck(testLabel,standLabel,testProb, standProb, threshold){
+    if(testLabel == standLabel){      
+      var k = 0;
+      var difference = Math.abs(testProb - standProb);  
+      console.log("We have a match for: " + standLabel);
+      console.log("The difference is: " + difference);
+      if( difference < threshold)
+      {          
+       k=1;
+       console.log('k has been incremented');
+      }
+   }
+   
+    return difference;
   }
+  
+  
+  
+  function filter() {
+    var video  = document.getElementById('video');
+    $('#filter').show();
+    video.muted = true;
+  }
+  
+  function unfilter(){
+    var video  = document.getElementById('video');
+    $('#filter').hide();
+    video.muted = false;
+  }
+  
+  function shoot(){
+    var video  = document.getElementById('video');
+    var output = document.getElementById('output');
+    
+    var scaleFactor = 0.25;
+    
+    
+    var w = video.videoWidth * scaleFactor;
+    var h = video.videoHeight * scaleFactor;   
+    var canvas = document.createElement('canvas');
+        canvas.width  = w;
+        canvas.height = h;
+    var ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, w, h);
+        var dataURL = canvas.toDataURL('image/jpeg');
+        console.log('dataURI is: '+dataURL);
+        output.innerHTML = '';
+        output.src = dataURL;
+      
+        
+        
+          $.ajax({
+              url: "/api/recognize",
+              processData : false,
+              type : "POST",
+              data: dataURL
+          })
+          .done (function(data) {console.log("Success");} )
+          .fail   (function()  { console.log("Error ")   ; })
+          ;
+       
+//    snapshots.unshift(dataURI);
+//    output.innerHTML = '';
+//    for(var i=0; i<4; i++){
+//      console.log(snapshots[i]);
+//        output.appendChild(snapshots[i+1]);
+//    }        
+        
+        //var random = Math.floor((Math.random() * 10) + 1);
+//        console.log('Random number is: ' + random);
+//        if(random < 5){
+//          filter();
+//        } else {
+//          unfilter();
+//        }
+        //Create If statement to assess whether to put the filter in or not
+       
+  }
+  
+  //set up timer for acquiring still frame image every 5 seconds to be processed by Watson
+  setInterval(shoot, 5000); 
+  
+  //Label Data as commerical or not for machine learning purposes
+  
+  document.getElementById("video").addEventListener('play', shoot, false);
+  $('#filter').hide();
+  
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 1 && this.currentTime <= 67) {
+         unfilter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 68 && this.currentTime <=98) {
+         filter();
+     }
+ }, false);
+  
+  
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime > 99 && this.currentTime <= 124) {
+         unfilter();
+     }
+ }, false);
+  
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 125 && this.currentTime <= 155) {
+         filter();
+     }
+ }, false);
+  
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 156 && this.currentTime <= 229) {
+         unfilter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 230 && this.currentTime <= 259) {
+         filter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 260 && this.currentTime <= 264) {
+         unfilter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 265 && this.currentTime <= 297) {
+         filter();
+     }
+ }, false);
+  
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 298 && this.currentTime <= 300) {
+         unfilter();
+     }
+ }, false);
+  
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 298 && this.currentTime <= 327) {
+         filter();
+     }
+ }, false);
+  
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 328 && this.currentTime <= 350) {
+         unfilter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 351 && this.currentTime <= 385) {
+         filter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 386 && this.currentTime <= 433) {
+         unfilter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 434 && this.currentTime <= 433) {
+         filter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 434 && this.currentTime <= 463) {
+         filter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 464 && this.currentTime <= 475) {
+         unfilter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 476 && this.currentTime <= 505) {
+         filter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 506 && this.currentTime <= 508) {
+         unfilter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 509 && this.currentTime <= 567) {
+         filter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 567 && this.currentTime <= 596) {
+         unfilter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 597 && this.currentTime <= 625) {
+         filter();
+     }
+ }, false);
+  document.getElementById("video").addEventListener("timeupdate", function() {
+    if (this.currentTime >= 626) {
+         unfilter();
+     }
+ }, false);
+  
+//  document.getElementById("video").addEventListener("timeupdate", function() {
+//    if (this.currentTime >= 125 || this.currentTime <= 155) {
+//         filter();
+//     }
+// }, false);
+//  
+//  document.getElementById("video").addEventListener("timeupdate", function() {
+//    if (this.currentTime > 156) {
+//         unfilter();
+//     }
+// }, false);
 
   $(document).on('dragover', function () {
     $('.dropzone label').addClass('hover');
@@ -241,3 +504,4 @@
   });
 
 })();
+
